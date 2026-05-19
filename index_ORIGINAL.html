@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Preisliste BSH 06/2026</title>
+
+<style>
+body {
+    font-family: Arial;
+    margin: 20px;
+}
+
+input {
+    padding: 8px;
+    width: 300px;
+    margin-bottom: 15px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 6px;
+    border: 1px solid #ccc;
+    text-align: left;
+}
+
+th {
+    background: #eee;
+}
+
+.green { background: #d4edda; }
+.yellow { background: #fff3cd; }
+.red { background: #f8d7da; }
+</style>
+</head>
+
+<body>
+
+<h2>BSH Preisliste ab 01.06.2026</h2>
+
+<input type="text" id="searchInput" placeholder="Suche Artikel oder Bezeichnung...">
+
+<table id="table">
+<thead>
+<tr>
+    <th>Bereich</th>
+    <th>Art.-Nr.</th>
+    <th>Bezeichnung</th>
+    <th>Netto</th>
+    <th>TVB</th>
+    <th>RVL</th>
+    <th>VTL</th>
+    <th>BL</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script>
+let data = [];
+
+fetch("CSV VORLÄUFIGE_06_2026_VTL_BL_Limitliste BSH_08-05-2026 (1).csv")
+.then(res => res.text())
+.then(text => {
+    let rows = text.split("
+").slice(2);
+
+    data = rows.map(r => {
+        let c = r.split(";");
+        return {
+            bereich: c[0],
+            nr: c[1],
+            name: c[2],
+            netto: parseFloat(c[5].replace(",", ".")),
+            tvb: parseFloat(c[9].replace(",", ".")),
+            rvl: parseFloat(c[10].replace(",", ".")),
+            vtl: parseFloat(c[11].replace(",", ".")),
+            bl: parseFloat(c[12].replace(",", "."))
+        };
+    });
+
+    render(data);
+});
+
+function getColor(netto, limit) {
+    if (!limit || isNaN(limit)) return "";
+    if (netto <= limit) return "red";
+    if (netto <= limit * 1.1) return "yellow";
+    return "green";
+}
+
+function render(list) {
+    const tbody = document.querySelector("#table tbody");
+    tbody.innerHTML = "";
+
+    list.forEach(p => {
+        let row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${p.bereich}</td>
+            <td>${p.nr}</td>
+            <td>${p.name}</td>
+            <td>${p.netto.toFixed(2)}</td>
+            <td class="${getColor(p.netto, p.tvb)}">${p.tvb || ""}</td>
+            <td class="${getColor(p.netto, p.rvl)}">${p.rvl || ""}</td>
+            <td class="${getColor(p.netto, p.vtl)}">${p.vtl || ""}</td>
+            <td class="${getColor(p.netto, p.bl)}">${p.bl || ""}</td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+document.getElementById("searchInput").addEventListener("input", e => {
+    let val = e.target.value.toLowerCase();
+
+    let filtered = data.filter(p =>
+        p.name.toLowerCase().includes(val) ||
+        p.nr.includes(val)
+    );
+
+    render(filtered);
+});
+</script>
+
+</body>
+</html>
